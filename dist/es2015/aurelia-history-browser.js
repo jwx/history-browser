@@ -130,9 +130,9 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
 
         return true;
       } else if (this._hasPushState && atRoot && loc.hash) {
-          this.fragment = this._getHash().replace(routeStripper, '');
-          this.history.replaceState({}, DOM.title, this.root + this.fragment + loc.search);
-        }
+        this.fragment = this._getHash().replace(routeStripper, '');
+        this.history.replaceState({}, DOM.title, this.root + this.fragment + loc.search);
+      }
     }
 
     if (!this.fragment) {
@@ -202,6 +202,17 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
 
   setTitle(title) {
     DOM.title = title;
+  }
+
+  setState(key, value) {
+    let state = Object.assign({}, this.history.state);
+    state[key] = value;
+    this.history.replaceState(state, null, null);
+  }
+
+  getState(key) {
+    let state = Object.assign({}, this.history.state);
+    return state[key];
   }
 
   _getHash() {
