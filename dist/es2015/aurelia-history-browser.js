@@ -113,7 +113,8 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
     this.root = ('/' + this.options.root + '/').replace(rootStripper, '/');
 
     this._wantsHashChange = this.options.hashChange !== false;
-    this._hasPushState = !!(this.options.pushState && this.history && this.history.pushState);
+    this._hasPushState = !!(this.history && this.history.pushState);
+    this._usePushState = !!(this._hasPushState && this.options.pushState);
 
     let eventName;
     if (this._hasPushState) {
@@ -128,12 +129,12 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
       let loc = this.location;
       let atRoot = loc.pathname.replace(/[^\/]$/, '$&/') === this.root;
 
-      if (!this._hasPushState && !atRoot) {
+      if (!this._usePushState && !atRoot) {
         this.fragment = this._getFragment(null, true);
         this.location.replace(this.root + this.location.search + '#' + this.fragment);
 
         return true;
-      } else if (this._hasPushState && atRoot && loc.hash) {
+      } else if (this._usePushState && atRoot && loc.hash) {
         this.fragment = this._getHash().replace(routeStripper, '');
         this.history.replaceState({}, DOM.title, this.root + this.fragment + loc.search);
       }
@@ -159,10 +160,10 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
 
   getAbsoluteRoot() {
     let origin = createOrigin(this.location.protocol, this.location.hostname, this.location.port);
-    return `${origin}${this.root}`;
+    return `${ origin }${ this.root }`;
   }
 
-  navigate(fragment, { trigger = true, replace = false } = {}) {
+  navigate(fragment, { trigger = true, replace = false } = {}, state) {
     if (fragment && absoluteUrl.test(fragment)) {
       this.location.href = fragment;
       return true;
@@ -188,6 +189,9 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
 
     if (this._hasPushState) {
       url = url.replace('//', '/');
+      if (!this._usePushState) {
+        url = '#' + url;
+      }
       this.history[replace ? 'replaceState' : 'pushState']({}, DOM.title, url);
     } else if (this._wantsHashChange) {
       updateHash(this.location, fragment, replace);
@@ -196,7 +200,7 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
     }
 
     if (trigger) {
-      return this._loadUrl(fragment);
+      return this._loadUrl(fragment, state);
     }
 
     return true;
@@ -214,7 +218,7 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
     let state = Object.assign({}, this.history.state);
     let { pathname, search, hash } = this.location;
     state[key] = value;
-    this.history.replaceState(state, null, `${pathname}${search}${hash}`);
+    this.history.replaceState(state, null, `${ pathname }${ search }${ hash }`);
   }
 
   getState(key) {
@@ -230,7 +234,7 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
     let root;
 
     if (!fragment) {
-      if (this._hasPushState || !this._wantsHashChange || forcePushState) {
+      if (this._usePushState || !this._wantsHashChange || forcePushState) {
         fragment = this.location.pathname + this.location.search;
         root = this.root.replace(trailingSlash, '');
         if (!fragment.indexOf(root)) {
@@ -244,17 +248,20 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
     return '/' + fragment.replace(routeStripper, '');
   }
 
-  _checkUrl() {
+  _checkUrl(event) {
     let current = this._getFragment();
     if (current !== this.fragment) {
+      if (event.type === "popstate") {
+        this.history.replaceState(event.state, null);
+      }
       this._loadUrl();
     }
   }
 
-  _loadUrl(fragmentOverride) {
+  _loadUrl(fragmentOverride, state) {
     let fragment = this.fragment = this._getFragment(fragmentOverride);
 
-    return this.options.routeHandler ? this.options.routeHandler(fragment) : false;
+    return this.options.routeHandler ? this.options.routeHandler(fragment, state) : false;
   }
 }, _class.inject = [LinkHandler], _temp);
 
@@ -276,5 +283,5 @@ function updateHash(location, fragment, replace) {
 }
 
 function createOrigin(protocol, hostname, port) {
-  return `${protocol}//${hostname}${port ? ':' + port : ''}`;
+  return `${ protocol }//${ hostname }${ port ? ':' + port : '' }`;
 }

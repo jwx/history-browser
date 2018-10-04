@@ -165,7 +165,8 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
       this.root = ('/' + this.options.root + '/').replace(rootStripper, '/');
 
       this._wantsHashChange = this.options.hashChange !== false;
-      this._hasPushState = !!(this.options.pushState && this.history && this.history.pushState);
+      this._hasPushState = !!(this.history && this.history.pushState);
+      this._usePushState = !!(this._hasPushState && this.options.pushState);
 
       var eventName = void 0;
       if (this._hasPushState) {
@@ -180,12 +181,12 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
         var loc = this.location;
         var atRoot = loc.pathname.replace(/[^\/]$/, '$&/') === this.root;
 
-        if (!this._hasPushState && !atRoot) {
+        if (!this._usePushState && !atRoot) {
           this.fragment = this._getFragment(null, true);
           this.location.replace(this.root + this.location.search + '#' + this.fragment);
 
           return true;
-        } else if (this._hasPushState && atRoot && loc.hash) {
+        } else if (this._usePushState && atRoot && loc.hash) {
           this.fragment = this._getHash().replace(routeStripper, '');
           this.history.replaceState({}, _aureliaPal.DOM.title, this.root + this.fragment + loc.search);
         }
@@ -221,6 +222,8 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
           _ref$replace = _ref.replace,
           replace = _ref$replace === undefined ? false : _ref$replace;
 
+      var state = arguments[2];
+
       if (fragment && absoluteUrl.test(fragment)) {
         this.location.href = fragment;
         return true;
@@ -246,6 +249,9 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
 
       if (this._hasPushState) {
         url = url.replace('//', '/');
+        if (!this._usePushState) {
+          url = '#' + url;
+        }
         this.history[replace ? 'replaceState' : 'pushState']({}, _aureliaPal.DOM.title, url);
       } else if (this._wantsHashChange) {
         updateHash(this.location, fragment, replace);
@@ -254,7 +260,7 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
       }
 
       if (trigger) {
-        return this._loadUrl(fragment);
+        return this._loadUrl(fragment, state);
       }
 
       return true;
@@ -292,7 +298,7 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
       var root = void 0;
 
       if (!fragment) {
-        if (this._hasPushState || !this._wantsHashChange || forcePushState) {
+        if (this._usePushState || !this._wantsHashChange || forcePushState) {
           fragment = this.location.pathname + this.location.search;
           root = this.root.replace(trailingSlash, '');
           if (!fragment.indexOf(root)) {
@@ -306,17 +312,20 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
       return '/' + fragment.replace(routeStripper, '');
     };
 
-    BrowserHistory.prototype._checkUrl = function _checkUrl() {
+    BrowserHistory.prototype._checkUrl = function _checkUrl(event) {
       var current = this._getFragment();
       if (current !== this.fragment) {
+        if (event.type === "popstate") {
+          this.history.replaceState(event.state, null);
+        }
         this._loadUrl();
       }
     };
 
-    BrowserHistory.prototype._loadUrl = function _loadUrl(fragmentOverride) {
+    BrowserHistory.prototype._loadUrl = function _loadUrl(fragmentOverride, state) {
       var fragment = this.fragment = this._getFragment(fragmentOverride);
 
-      return this.options.routeHandler ? this.options.routeHandler(fragment) : false;
+      return this.options.routeHandler ? this.options.routeHandler(fragment, state) : false;
     };
 
     return BrowserHistory;
