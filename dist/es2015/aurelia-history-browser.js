@@ -159,7 +159,7 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
 
   getAbsoluteRoot() {
     let origin = createOrigin(this.location.protocol, this.location.hostname, this.location.port);
-    return `${origin}${this.root}`;
+    return `${ origin }${ this.root }`;
   }
 
   navigate(fragment, { trigger = true, replace = false } = {}) {
@@ -214,12 +214,21 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
     let state = Object.assign({}, this.history.state);
     let { pathname, search, hash } = this.location;
     state[key] = value;
-    this.history.replaceState(state, null, `${pathname}${search}${hash}`);
+    this.history.replaceState(state, null, `${ pathname }${ search }${ hash }`);
   }
 
   getState(key) {
     let state = Object.assign({}, this.history.state);
     return state[key];
+  }
+
+  getHistoryIndex() {
+    let historyIndex = this.getState('HistoryIndex');
+    if (historyIndex === undefined) {
+      historyIndex = this.history.length - 1;
+      this.setState('HistoryIndex', historyIndex);
+    }
+    return historyIndex;
   }
 
   _getHash() {
@@ -276,5 +285,5 @@ function updateHash(location, fragment, replace) {
 }
 
 function createOrigin(protocol, hostname, port) {
-  return `${protocol}//${hostname}${port ? ':' + port : ''}`;
+  return `${ protocol }//${ hostname }${ port ? ':' + port : '' }`;
 }

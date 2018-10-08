@@ -170,4 +170,10 @@ export declare class BrowserHistory extends History {
      * @return The value for the key.
      */
   getState(key: string): any;
+  
+  /**
+     * Returns the current index in the history object.
+     * @returns The current index.
+     */
+  getHistoryIndex(): number;
 }

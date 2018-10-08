@@ -284,6 +284,15 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
       return state[key];
     };
 
+    BrowserHistory.prototype.getHistoryIndex = function getHistoryIndex() {
+      var historyIndex = this.getState('HistoryIndex');
+      if (historyIndex === undefined) {
+        historyIndex = this.history.length - 1;
+        this.setState('HistoryIndex', historyIndex);
+      }
+      return historyIndex;
+    };
+
     BrowserHistory.prototype._getHash = function _getHash() {
       return this.location.hash.substr(1);
     };
